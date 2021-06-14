@@ -18,13 +18,15 @@ flask-cors = "*"
 gunicorn = "*"
 mysqlclient = "*"
 flask-admin = "*"
+flask-jwt-extended = "*"
 
 [requires]
-python_version = "3.8"
+python_version = "3.9.5"
 
 [scripts]
 start="flask run -p 3000 -h 0.0.0.0"
 init="flask db init"
 migrate="flask db migrate"
 upgrade="flask db upgrade"
+downgrade="flask db downgrade"
 deploy="echo 'Please follow this 3 steps to deploy: https://github.com/4GeeksAcademy/flask-rest-hello/blob/master/README.md#deploy-your-website-to-heroku' "

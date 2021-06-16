@@ -8,7 +8,7 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Buyer, Store
+from models import db, User, Buyer, Category, Store, Product
 #from flask_appbuilder.api import BaseApi, expose
 
 #from models import Person
@@ -113,6 +113,28 @@ def create_store():
         }
     ), 201
 
+
+#------------------------------PRODUCT ENDPOINTS--------------------
+
+@app.route('/<int:store_id>/new-product', methods=['POST'])
+def new_product(store_id):
+    """Create a new Product for a Store """
+    request_body = request.json
+    new_product = Product.create(
+        name = request_body["name"],
+        description = request_body["description"],
+        price = request_body["price"],
+        amount_available = request_body['amount_available'],
+        store_id = store_id,
+        active = request_body['active']
+    )
+    new_product.save()
+    return jsonify(
+        {
+            "msg" : "Su producto fue creado satisfactoriamente",
+            "product" : new_product.serialize()
+        }
+    ), 201
 
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':

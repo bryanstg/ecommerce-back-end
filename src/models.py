@@ -121,3 +121,35 @@ class Category(db.Model):
             "id": self.id,
             "name": self.name
         }
+
+class Store(db.Model, Crud):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    description = db.Column(db.String(120), unique=False, nullable=False)
+    #id_categories = db.Column(db.Integer, db.ForeignKey('category.id'))
+    #id_seller = db.Column(db.Integer, db.ForeignKey('seller.id'))
+    #id_products = db.Column(db.Integer, db.ForeignKey('product.id'))
+
+    def save(self):
+        """ Save and commit a new Category """
+        db.session.add(self)
+        db.session.commit()
+
+    def __repr__(self):
+        return '<Store %r>' % self.name
+
+    def serialize(self):
+        return {
+            "id" : self.id,
+            "name" : self.name,
+            "description" : self.description,
+            "categories" : "self.categories",
+            "seller_id" : "",
+            "id_products" : {
+                "products" : "self.id_products", #Here, should serialize all the products by name and id. 
+                "quantity": "",
+                "categories" : "",
+                "active": "",
+                "deactivated": ""
+            }
+        }

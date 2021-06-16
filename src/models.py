@@ -126,19 +126,21 @@ class Store(db.Model, Crud):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.String(120), unique=False, nullable=False)
-    #id_categories = db.Column(db.Integer, db.ForeignKey('category.id'))
+    #categories = db.Column(db.Integer, db.ForeignKey('category.id'))
     #id_seller = db.Column(db.Integer, db.ForeignKey('seller.id'))
-    #id_products = db.Column(db.Integer, db.ForeignKey('product.id'))
+    products = db.relationship('Product', backref='store')
 
     def save(self):
-        """ Save and commit a new Category """
+        """ Save and commit a new Store """
         db.session.add(self)
         db.session.commit()
 
     def __repr__(self):
+        """ Return a representancion of the instance """
         return '<Store %r>' % self.name
 
     def serialize(self):
+        """ Return a dictionary of the instance """
         return {
             "id" : self.id,
             "name" : self.name,
@@ -146,10 +148,49 @@ class Store(db.Model, Crud):
             "categories" : "self.categories",
             "seller_id" : "",
             "id_products" : {
-                "products" : "self.id_products", #Here, should serialize all the products by name and id. 
+                "products" :  [p.product.minialize() for p in self.products],
                 "quantity": "",
                 "categories" : "",
                 "active": "",
                 "deactivated": ""
             }
         }
+
+class Product(db.Model, Crud):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), unique=True, nullable=False)
+    description = db.Column(db.String(240), unique=False, nullable=False)
+    price = db.Column(db.String(80), unique=False, nullable=False)
+    amount_available = db.Column(db.Integer, unique=False, nullable=False)
+    active = db.Column(db.Boolean, unique=False, nullable=False)
+    #categories_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    store_id = db.Column(db.Integer, db.ForeignKey('store.id'))
+
+    def save(self):
+        """ Save and commit a new Product """
+        db.session.add(self)
+        db.session.commit()
+
+    def __repr__(self):
+        """ Return a representancion of the instance """
+        return '<Product %r>' % self.name
+
+    def serialize(self):
+        """ Return a dictionary of the instance """
+        return {
+            "id" : self.id,
+            "name" : self.name,
+            "description" : self.description,
+            "price" : self.price,
+            "amount_available" : self.amount_available,
+            "active" : self.active,
+            "categories" : "self.categories",
+            "store_id" : self.store_id,
+        }
+    
+    def minialize(self):
+        """ Return a resumed serialize"""  
+        return {
+            "id" : self.id,
+            "name" : self.name
+        }  

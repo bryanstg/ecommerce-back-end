@@ -116,9 +116,22 @@ def create_store():
 
 #------------------------------PRODUCT ENDPOINTS--------------------
 
+@app.route('/<int:store_id>/products', methods=['GET'])
+def get_all_products(store_id):
+    """ Get all the poducts in a specific Store by store_id"""
+    products = Product.get_products_by_store(store_id)
+    products_dict = list(map(lambda product: product.serialize(), products))
+    return jsonify(
+        {
+            "store_id" : store_id, 
+            "products" : products_dict
+        }
+    )
+    
+
 @app.route('/<int:store_id>/new-product', methods=['POST'])
 def new_product(store_id):
-    """Create a new Product for a Store """
+    """Create a new Product for a specific Store by store id """
     request_body = request.json
     new_product = Product.create(
         name = request_body["name"],
@@ -126,7 +139,8 @@ def new_product(store_id):
         price = request_body["price"],
         amount_available = request_body['amount_available'],
         store_id = store_id,
-        active = request_body['active']
+        active = request_body['active'],
+        #img_url = request_body['img_url'],
     )
     new_product.save()
     return jsonify(

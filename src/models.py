@@ -163,8 +163,14 @@ class Product(db.Model, Crud):
     price = db.Column(db.String(80), unique=False, nullable=False)
     amount_available = db.Column(db.Integer, unique=False, nullable=False)
     active = db.Column(db.Boolean, unique=False, nullable=False)
+    #img_url = db.Column(db.String(240), unique=False, nullable=True)
     #categories_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     store_id = db.Column(db.Integer, db.ForeignKey('store.id'))
+
+    @classmethod
+    def get_products_by_store(cls, store_id):
+        """ Get all the poducts in a store """
+        return cls.query.filter_by(store_id = store_id)
 
     def save(self):
         """ Save and commit a new Product """
@@ -186,6 +192,7 @@ class Product(db.Model, Crud):
             "active" : self.active,
             "categories" : "self.categories",
             "store_id" : self.store_id,
+            #"img_url" : self.img_url
         }
     
     def minialize(self):

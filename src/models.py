@@ -100,13 +100,10 @@ class Buyer(db.Model, Crud):
             "address": self.address
         }
 
-class Category(db.Model):
+class Category(db.Model, Crud):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
-
-    def __init__(self, name):
-        """Constructor of Category's class"""
-        self.name = name
+    products = db.relationship('Product', backref='category')
 
     def save(self):
         """ Save and commit a new Category """
@@ -119,14 +116,21 @@ class Category(db.Model):
     def serialize(self):
         return {
             "id": self.id,
-            "name": self.name
+            "name": self.name,
+            "products": [ p.minialize() for p  in self.products]
+        }
+
+    def minialize(self):
+        return {
+            "id" : self.id,
+            "name" : self.name
         }
 
 class Store(db.Model, Crud):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.String(120), unique=False, nullable=False)
-    #categories = db.Column(db.Integer, db.ForeignKey('category.id'))
+    categories = db.Column(db.Integer, db.ForeignKey('category.id'))
     #id_seller = db.Column(db.Integer, db.ForeignKey('seller.id'))
     products = db.relationship('Product', backref='store')
 
@@ -145,30 +149,27 @@ class Store(db.Model, Crud):
             "id" : self.id,
             "name" : self.name,
             "description" : self.description,
-            "categories" : "self.categories",
             "seller_id" : "",
             "id_products" : {
-                "products" :  [p.product.minialize() for p in self.products],
-                "quantity": "",
-                "categories" : "",
-                "active": "",
-                "deactivated": ""
+                "products" :  [p.minialize() for p in self.products],
+                "quantity": len(self.products),
+                "categories" : [c.category.minialize() for c in self.products],
             }
         }
 
 class Product(db.Model, Crud):
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120), unique=True, nullable=False)
-    description = db.Column(db.String(240), unique=False, nullable=False)
-    price = db.Column(db.String(80), unique=False, nullable=False)
-    amount_available = db.Column(db.Integer, unique=False, nullable=False)
-    active = db.Column(db.Boolean, unique=False, nullable=False)
-    #img_url = db.Column(db.String(240), unique=False, nullable=True)
-    #categories_id = db.Column(db.Integer, db.ForeignKey('category.id'))
+    name = db.Column(db.String(120), nullable=False)
+    description = db.Column(db.String(240), nullable=False)
+    price = db.Column(db.String(80), nullable=False)
+    amount_available = db.Column(db.String(80), nullable=False)
+    active = db.Column(db.Boolean, nullable=False)
+    img_url = db.Column(db.String(360), nullable=False)
+    category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     store_id = db.Column(db.Integer, db.ForeignKey('store.id'))
 
     @classmethod
-    def get_products_by_store(cls, store_id):
+    def get_by_store(cls, store_id):
         """ Get all the poducts in a store """
         return cls.query.filter_by(store_id = store_id)
 
@@ -190,9 +191,9 @@ class Product(db.Model, Crud):
             "price" : self.price,
             "amount_available" : self.amount_available,
             "active" : self.active,
-            "categories" : "self.categories",
+            "category" : self.category.minialize(),
             "store_id" : self.store_id,
-            #"img_url" : self.img_url
+            "img_url" : self.img_url
         }
     
     def minialize(self):

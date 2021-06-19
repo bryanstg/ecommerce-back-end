@@ -93,9 +93,43 @@ def handle_hello():
     }
 
     return jsonify(response_body), 200
+#----------------------------CATEGORY ENDPOINTS------------------------
 
+@app.route('/categories', methods=['GET'])
+def get_categories():
+    categories = Category.get_all()
+    categories_dict = list(map(lambda category: category.serialize(), categories))
+    return jsonify(
+        {
+            "categories" : categories_dict
+        }
+    )
 
+@app.route('/new-category', methods=['POST'])
+def create_category():
+    request_body = request.json
+    new_category = Category.create(
+        name = request_body["name"]
+    )
+    new_category.save()
+    return jsonify(
+        {
+            "msg": "La categoría fue creada satisfactoriamente",
+            "category": new_category.serialize()
+        }
+    )
 #----------------------------STORE ENDPOINTS -------------------
+
+@app.route('/stores/<int:store_id>', methods=['GET'])
+def get_store(store_id):
+    """ Get a specific store by id """
+    store = Store.get_by_id(store_id)
+    return jsonify(
+        {
+            "store" : store.serialize()
+        }
+    ), 200
+    
 
 @app.route('/new-store', methods=['POST'])
 def create_store():
@@ -114,22 +148,23 @@ def create_store():
     ), 201
 
 
+
 #------------------------------PRODUCT ENDPOINTS--------------------
 
-@app.route('/<int:store_id>/products', methods=['GET'])
+@app.route('/stores/<int:store_id>/products', methods=['GET'])
 def get_all_products(store_id):
     """ Get all the poducts in a specific Store by store_id"""
-    products = Product.get_products_by_store(store_id)
+    products = Product.get_by_store(store_id)
     products_dict = list(map(lambda product: product.serialize(), products))
     return jsonify(
         {
             "store_id" : store_id, 
             "products" : products_dict
         }
-    )
+    ), 200
     
 
-@app.route('/<int:store_id>/new-product', methods=['POST'])
+@app.route('/stores/<int:store_id>/new-product', methods=['POST'])
 def new_product(store_id):
     """Create a new Product for a specific Store by store id """
     request_body = request.json
@@ -140,7 +175,8 @@ def new_product(store_id):
         amount_available = request_body['amount_available'],
         store_id = store_id,
         active = request_body['active'],
-        #img_url = request_body['img_url'],
+        img_url = request_body['img_url'],
+        category_id = request_body['category_id']
     )
     new_product.save()
     return jsonify(

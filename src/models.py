@@ -30,25 +30,39 @@ class Crud(object):
 
 class User(db.Model, Crud):
     id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(60), unique=True, nullable=False)
     email = db.Column(db.String(120), unique=True, nullable=False)
     salt = db.Column(db.String(40), nullable=False)
-    password = db.Column(db.String(240), unique=False, nullable=False)
+    hashed_password = db.Column(db.String(240), unique=False, nullable=False)
     is_active = db.Column(db.Boolean(), unique=False, nullable=False)
-    # @property
-    # def role(self):
-    #     seller = Seller.query.filter_by(user_id == self.id).one_or_none()
-    #     #if seller is None return "buyer"
-    #     #return "seller"
-    #     return "buyer"
+    user_seller = db.relationship("Seller", backref="user", uselist=False, cascade="all, delete-orphan", passive_deletes=True)
+    user_buyer = db.relationship("Buyer", backref="user", cascade="all, delete-orphan", passive_deletes=True, uselist=False)
 
-    def __init__(self, username, email, password, is_active = True):
-        """Constructor de clase Persona"""
-        self.username = username
+    @property
+    def role(self): 
+        seller = Seller.query.filter_by(user_id = self.id).one_or_none()
+        if seller is None:
+            buyer = Buyer.query.filter_by(user_id = self.id).oner_or_none()
+            return "buyer"
+        return "seller"
+
+    def __init__(self, email, password, is_active = True):
+        """ Constructor of an instance of User class"""
         self.email = email
         self.salt = os.urandom(16).hex()
-        self.password = password
+        self.set_password(password)
         self.is_active = is_active
+
+    def set_password(self, password):
+        """ Create a hashed password """
+        self.hashed_password = generate_password_hash(
+            f"{password}{self.salt}"
+        )
+
+    def check_password(self, password):
+        return check_password_hash(
+            self.hashed_password, 
+            f"{password}{self.salt}"
+        )
 
     def __repr__(self):
         return '<User %r>' % self.email
@@ -56,7 +70,10 @@ class User(db.Model, Crud):
     def serialize(self):
         return {
             "id": self.id,
-            "email": self.email
+            "email": self.email,
+            "is_active": self.is_active,
+            "user_seller" : self.user_seller.serialize() if self.user_seller is not None else None,
+            "user_buyer" : self.user_buyer.serialize() if self.user_buyer is not None else None
             # do not serialize the password, its a security breach
         }
 
@@ -72,8 +89,8 @@ class Buyer(db.Model, Crud):
     last_name = db.Column(db.String(120), unique=False, nullable=False)
     id_number = db.Column(db.String(12), unique=True, nullable=False)
     address = db.Column(db.String(80), unique=False, nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"))
-    user = db.relationship("User", uselist=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=True)
+    #shopping_car = db.relationship('ShoppingCar', backref='buyer')
 
     def __init__(self, id_number, first_name, last_name, address, user_id):
         """Constructor of Buyer's class"""
@@ -98,6 +115,32 @@ class Buyer(db.Model, Crud):
             "first_name": self.first_name,
             "last_name": self.last_name,
             "address": self.address
+        }
+
+class Seller(db.Model, Crud):
+    id = db.Column(db.Integer, primary_key=True)
+    company_name = db.Column(db.String(250), nullable=False, unique=True)
+    identification_number = db.Column(db.String(250), nullable=False, unique=True)
+    cellphone_number = db.Column(db.String(250), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=True)
+
+
+
+    def save(self):
+        """ Save and commit a new Seller """
+        db.session.add(self)
+        db.session.commit()
+
+    def __repr__(self):
+        return '<Seller %r>' % self.company_name
+
+    def serialize(self):
+        return {
+            "id": self.id,
+            "company_nam": self.company_name,
+            "identification_number" : self.identification_number,
+            "cellphone_number" : self.cellphone_number,
+            "user_id": self.user_id
         }
 
 class Category(db.Model, Crud):
@@ -131,7 +174,7 @@ class Store(db.Model, Crud):
     name = db.Column(db.String(120), unique=True, nullable=False)
     description = db.Column(db.String(120), unique=False, nullable=False)
     categories = db.Column(db.Integer, db.ForeignKey('category.id'))
-    #id_seller = db.Column(db.Integer, db.ForeignKey('seller.id'))
+    seller_id = db.Column(db.Integer, db.ForeignKey('seller.id'))
     products = db.relationship('Product', backref='store')
 
     def save(self):
@@ -149,7 +192,7 @@ class Store(db.Model, Crud):
             "id" : self.id,
             "name" : self.name,
             "description" : self.description,
-            "seller_id" : "",
+            "seller_id" : self.seller_id,
             "id_products" : {
                 "products" :  [p.minialize() for p in self.products],
                 "quantity": len(self.products),
@@ -202,3 +245,13 @@ class Product(db.Model, Crud):
             "id" : self.id,
             "name" : self.name
         }  
+
+#class ShoppingCar(db.Model, Crud):
+#    id = db.Column(db.Integer, primary_key=True)
+#    products : db.relationship("Product", secondary=reserve, brackref="shoppingcar")
+#    buyer_id = db.Column(db.Integer, db.ForeignKey('buyer.id'))
+
+#reserve = db.Table("association", Base.metadata,
+#    db.Column("shoppingcar_id", db.Integer, db.ForeignKey("shoppingcar.id")), 
+#    db.Column("product_id", db.Integer, db.ForeignKey("product.id"))
+#)

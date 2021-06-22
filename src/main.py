@@ -8,7 +8,10 @@ from flask_swagger import swagger
 from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
-from models import db, User, Buyer, Category, Store, Product
+#Modelos de datos
+from models import db, User, Buyer, Seller, Category, Store, Product
+#Flask JWT Extended 
+from flask_jwt_extended import create_access_token, JWTManager
 #from flask_appbuilder.api import BaseApi, expose
 
 #from models import Person
@@ -17,10 +20,13 @@ app = Flask(__name__)
 app.url_map.strict_slashes = False
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DB_CONNECTION_STRING')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+app.config["JWT_SECRET_KEY"] = "317fc45bf08126c37f6cb1fd14bcdc9b"
 MIGRATE = Migrate(app, db)
 db.init_app(app)
 CORS(app)
 setup_admin(app)
+jwt = JWTManager(app)
+
 
 # Handle/serialize errors like a JSON object
 @app.errorhandler(APIException)
@@ -32,17 +38,15 @@ def handle_invalid_usage(error):
 #bpa = Blueprint('auth', __name__, url_prefix='/auth')
 
 # generate sitemap with all your endpoints
-@app.route('/register-buyer',  methods=['POST'])
+@app.route('/signup-buyer',  methods=['POST'])
 def register_buyer():
     """ Recive data to create a Buyer """
     request_body = request.json 
     print(request.data)
     print(request.json)
     new_user = User.create(
-        username = request_body["username"],
         email = request_body["email"],
-        password = request_body["password"],
-        is_active = True
+        password = request_body["password"]
     )
     new_user.save()
     new_buyer = Buyer.create(
@@ -67,16 +71,87 @@ def register_buyer():
     return response_body, 200
     #return jsonify(response_body), 200
 
+@app.route('/signup-seller', methods=['POST'])
+def register_seller():
+    """ Recibe data to create an User and assign it to a seller, creating one """
+    request_body = request.json
+
+    #Create an user
+    new_user = User(
+        email =  request_body["email"],
+        password = request_body["password"],
+    )
+    if not isinstance(new_user, User):
+        return jsonify(
+            {
+                "msg": "Ocurrió un problema al crear el usuario."
+            }
+        ), 500
+    new_user.save()
+
+    #Create seller role
+    seller = Seller.create(
+        company_name = request_body["company_name"],
+        identification_number = request_body["identification_number"],
+        cellphone_number = request_body["cellphone_number"],
+        user_id = new_user.id
+    )
+    if not isinstance(seller, Seller):
+        #User.query.filter_by(id= user.id).delete()
+        #db.session.commit()
+        return jsonify({
+            "msg" : "Ocurrió un error creando el rol de vendedor"
+        }), 500
+
+    seller.save()
 
 
-@app.route('/profile-buyer',  methods=['GET'])
-def get_buyer():
-    response_body = {
-            "id":"45",
-            "email":"miguel@email.com",
-            "role": "My Role"
-    }
-    return jsonify(response_body), 200
+    #Create Store
+    store = Store.create(
+        name = request_body['name'],
+        description = request_body["description"],
+        seller_id = seller.id
+    )
+    if not isinstance(store, Store):
+        #Seller.query.filter_by(id = seller.id).delete()
+        #User.query.filter_by(id= user.id).delete()
+        #db.session.commit()
+        return jsonify({
+            "msg" : "Ocurrió un problema al crear la tienda"
+        }), 500
+    store.save()
+    return jsonify({
+        "msg": "La cuenta fue creada satisfactoriamente",
+        "response": {
+            "user":  new_user.serialize(),
+            "seller": seller.serialize(),
+            "store": store.serialize()
+        }
+    }), 201
+
+
+@app.route('/login', methods=['POST'])
+def log_user_in():
+    data = request.json
+    user = User.query.filter_by(email = data.get('email')).one_or_none()
+    if user is None:
+        return jsonify({
+            "msg" : "El usuario no existe"
+        }), 404
+    if not user.check_password(data.get('password')):
+        return jsonigy({
+            "msg" : "Malas credenciales"
+        }), 404
+    #Create token
+    token = create_access_token(identity=user.id)
+
+    user_role = user.role
+    return jsonify({
+        "user": user.serialize(),
+        "role": user_role,
+        "jwt": token
+    }), 201
+
 
 
 
@@ -85,14 +160,6 @@ def get_buyer():
 # def sitemap():
 #     return generate_sitemap(app)
 
-@app.route('/user', methods=['GET'])
-def handle_hello():
-
-    response_body = {
-        "msg": "Hello, this is your GET /user response "
-    }
-
-    return jsonify(response_body), 200
 #----------------------------CATEGORY ENDPOINTS------------------------
 
 @app.route('/categories', methods=['GET'])
@@ -120,10 +187,12 @@ def create_category():
     )
 #----------------------------STORE ENDPOINTS -------------------
 
-@app.route('/stores/<int:store_id>', methods=['GET'])
-def get_store(store_id):
+@app.route('/<int:seller_id>/store', methods=['GET'])
+def get_store(seller_id):
     """ Get a specific store by id """
-    store = Store.get_by_id(store_id)
+    store_id = Store.query.filter_by(seller_id = seller_id).one_or_none()
+    print(store_id)
+    store = Store.get_by_id(store_id.id)
     return jsonify(
         {
             "store" : store.serialize()
@@ -147,7 +216,13 @@ def create_store():
         }
     ), 201
 
-
+@app.route('/stores', methods=['GET'])
+def get_stores():
+    """ Return all the stores available """
+    stores = Store.get_all()
+    return jsonify({
+        "stores": [ store.serialize() for store in stores ]
+    }), 200
 
 #------------------------------PRODUCT ENDPOINTS--------------------
 

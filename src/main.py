@@ -9,7 +9,7 @@ from flask_cors import CORS
 from utils import APIException, generate_sitemap
 from admin import setup_admin
 #Modelos de datos
-from models import db, User, Buyer, Seller, Category, Store, Product
+from models import db, User, Buyer, Seller, Category, Store, Product, ProductToBuy
 #Flask JWT Extended 
 from flask_jwt_extended import create_access_token, JWTManager
 #from flask_appbuilder.api import BaseApi, expose
@@ -121,9 +121,6 @@ def register_seller():
         seller_id = seller.id
     )
     if not isinstance(store, Store):
-        #Seller.query.filter_by(id = seller.id).delete()
-        #User.query.filter_by(id= user.id).delete()
-        #db.session.commit()
         return jsonify({
             "msg" : "Ocurrió un problema al crear la tienda"
         }), 500
@@ -141,6 +138,10 @@ def register_seller():
 
 @app.route('/login', methods=['POST'])
 def log_user_in():
+    """ 
+        Log in a user checking password and email. Return token and info about the user
+    
+    """
     data = request.json
     user = User.query.filter_by(email = data.get('email')).one_or_none()
     if user is None:
@@ -162,11 +163,23 @@ def log_user_in():
     }), 201
 
 
+#----------------------------BUYER ENDPOINTS-------------------------
+
+@app.route('/buyers', methods=['GET'])
+def get_buyers():
+    """Get all the buyers """
+    buyers = Buyer.get_all()
+    buyers_dict = list(map(lambda buyer: buyer.serialize(), buyers))
+    return jsonify({
+        "buyers": buyers_dict
+    })
+
 
 #----------------------------CATEGORY ENDPOINTS------------------------
 
 @app.route('/categories', methods=['GET'])
 def get_categories():
+    """ Get all the categories available """
     categories = Category.get_all()
     categories_dict = list(map(lambda category: category.serialize(), categories))
     return jsonify(
@@ -177,6 +190,7 @@ def get_categories():
 
 @app.route('/new-category', methods=['POST'])
 def create_category():
+    """ Create a new category """
     request_body = request.json
     new_category = Category.create(
         name = request_body["name"]
@@ -264,6 +278,69 @@ def new_product(store_id):
         }
     ), 201
 
+
+#-------------------PRODUCT TO BUY -------------------
+@app.route('/<int:buyer_id>/products-to-buy', methods=['GET'])
+def get_products_buyer(buyer_id):
+    """ Get all the products to buy from a buyer """
+    products = ProductToBuy.get_all_products(buyer_id)
+    products_dict = list(map(lambda product_to_buy: product_to_buy.serialize(), products))
+    return jsonify({
+        "msg": "Petición exitosa",
+        "products_to_buy" : products_dict
+    }), 200
+
+
+
+@app.route('/add-product', methods=['POST'])
+def create_poduct_to_buy():
+    """ Create a product to buy
+        Request body example:
+        {
+            "buyer_id" : "2",
+            "product_id" : "4",
+            "quantity" : "1"
+        }
+     """
+    request_body =  request.json
+    product_to_buy = ProductToBuy.create(
+        quantity = request_body['quantity'],
+        buyer_id = request_body['buyer_id'],
+        product_id = request_body['product_id']
+    )
+    if not isinstance(product_to_buy, ProductToBuy):
+        return jsonify({
+            "msg": "Ocurrió un error al crear el producto a comprar"
+        }), 500
+    product_to_buy.save()
+
+    return jsonify({
+        "msg" :  "Se creó la asociacion correctamente"
+    }), 201
+
+@app.route('/edit-product/<int:id>', methods=['PATCH'])
+def edit_product_to_buy(id):
+    """ Edit a existent product quantity.
+        request body example
+        {
+            "quantity" : "new_quantity",
+        }
+    """
+    request_body = request.json
+    ProductToBuy.edit_quantity(id, request_body['quantity'])
+    return jsonify({
+        "msg" : "El producto fue actualizado satisfactoriamente"
+    }), 200
+
+@app.route('/product-to-buy/<int:id>', methods=['DELETE'])
+def delete_product_to_buy(id):
+    """ Delete a product to buy by id """
+    ProductToBuy.delete_by_id(id)
+    return jsonify({
+        "msg": "Product eliminated successfully"
+    }), 200
+
+  
 # this only runs if `$ python src/main.py` is executed
 if __name__ == '__main__':
     PORT = int(os.environ.get('PORT', 3000))

@@ -91,6 +91,7 @@ class Buyer(db.Model, Crud):
     cellphone_number = db.Column(db.String(30), unique=False, nullable=False)
     address = db.Column(db.String(80), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=True)
+    product_to_buy = db.relationship('ProductToBuy', backref='buyer')
     #shopping_car = db.relationship('ShoppingCar', backref='buyer')
 
     def save(self):
@@ -201,6 +202,7 @@ class Product(db.Model, Crud):
     img_url = db.Column(db.String(360), nullable=False)
     category_id = db.Column(db.Integer, db.ForeignKey('category.id'))
     store_id = db.Column(db.Integer, db.ForeignKey('store.id'))
+    product_to_buy = db.relationship('ProductToBuy', backref='product')
 
     @classmethod
     def get_by_store(cls, store_id):
@@ -237,12 +239,39 @@ class Product(db.Model, Crud):
             "name" : self.name
         }  
 
-#class ShoppingCar(db.Model, Crud):
-#    id = db.Column(db.Integer, primary_key=True)
-#    products : db.relationship("Product", secondary=reserve, brackref="shoppingcar")
-#    buyer_id = db.Column(db.Integer, db.ForeignKey('buyer.id'))
+class ProductToBuy(db.Model, Crud):
+    id = db.Column(db.Integer, primary_key=True)
+    buyer_id = db.Column(db.Integer, db.ForeignKey('buyer.id'))
+    quantity = db.Column(db.String(10), nullable=False)
+    product_id = db.Column(db.Integer, db.ForeignKey('product.id'))
+    
+    @classmethod
+    def get_all_by_buyer_id(cls, buyer_id):
+        """ Get all the products from a buyer id """
+        return cls.query.filter_by(buyer_id = buyer_id).all()
 
-#reserve = db.Table("association", Base.metadata,
-#    db.Column("shoppingcar_id", db.Integer, db.ForeignKey("shoppingcar.id")), 
-#    db.Column("product_id", db.Integer, db.ForeignKey("product.id"))
-#)
+    @classmethod
+    def edit_quantity(cls, id, quantity):
+        """Edit a product quantity column  """
+        product = cls.get_by_id(id).first()
+        product.quantity = quantity
+        db.session.commit()
+
+    def save(self):
+        """ Save and commit a new ProductToBuy """
+        db.session.add(self)
+        db.session.commit()
+
+    def __repr__(self):
+        """ Return a representancion of the instance """
+        return '<ProductToBuy %r>' % self.id
+
+    def serialize(self):
+        """ Return a dictionary of the instance """
+        return {
+            "id" : self.id,
+            "product_id": self.product_id,
+            "buyer_id": self.buyer_id,
+            "quantity": self.quantity
+        }
+    

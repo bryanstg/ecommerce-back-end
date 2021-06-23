@@ -253,7 +253,7 @@ class ProductToBuy(db.Model, Crud):
     @classmethod
     def edit_quantity(cls, id, quantity):
         """Edit a product quantity column  """
-        product = cls.get_by_id(id).first()
+        product = cls.get_by_id(id)
         product.quantity = quantity
         db.session.commit()
 

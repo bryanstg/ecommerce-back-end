@@ -283,7 +283,7 @@ def new_product(store_id):
 @app.route('/<int:buyer_id>/products-to-buy', methods=['GET'])
 def get_products_buyer(buyer_id):
     """ Get all the products to buy from a buyer """
-    products = ProductToBuy.get_all_products(buyer_id)
+    products = ProductToBuy.get_all_by_buyer_id(buyer_id)
     products_dict = list(map(lambda product_to_buy: product_to_buy.serialize(), products))
     return jsonify({
         "msg": "Petición exitosa",
@@ -318,7 +318,7 @@ def create_poduct_to_buy():
         "msg" :  "Se creó la asociacion correctamente"
     }), 201
 
-@app.route('/edit-product/<int:id>', methods=['PATCH'])
+@app.route('/edit-product-to-buy/<int:id>', methods=['PATCH'])
 def edit_product_to_buy(id):
     """ Edit a existent product quantity.
         request body example
@@ -332,7 +332,7 @@ def edit_product_to_buy(id):
         "msg" : "El producto fue actualizado satisfactoriamente"
     }), 200
 
-@app.route('/product-to-buy/<int:id>', methods=['DELETE'])
+@app.route('/product-to-delete/<int:id>', methods=['DELETE'])
 def delete_product_to_buy(id):
     """ Delete a product to buy by id """
     ProductToBuy.delete_by_id(id)

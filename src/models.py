@@ -41,7 +41,7 @@ class User(db.Model, Crud):
     def role(self): 
         seller = Seller.query.filter_by(user_id = self.id).one_or_none()
         if seller is None:
-            buyer = Buyer.query.filter_by(user_id = self.id).oner_or_none()
+            buyer = Buyer.query.filter_by(user_id = self.id).one_or_none()
             return "buyer"
         return "seller"
 
@@ -88,17 +88,10 @@ class Buyer(db.Model, Crud):
     first_name = db.Column(db.String(120), unique=False, nullable=False)
     last_name = db.Column(db.String(120), unique=False, nullable=False)
     id_number = db.Column(db.String(12), unique=True, nullable=False)
+    cellphone_number = db.Column(db.String(30), unique=False, nullable=False)
     address = db.Column(db.String(80), unique=False, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=True)
     #shopping_car = db.relationship('ShoppingCar', backref='buyer')
-
-    def __init__(self, id_number, first_name, last_name, address, user_id):
-        """Constructor of Buyer's class"""
-        self.id_number = id_number
-        self.first_name = first_name
-        self.last_name = last_name
-        self.address = address
-        self.user_id = user_id
 
     def save(self):
         """ Save and commit a new Buyer """
@@ -114,6 +107,7 @@ class Buyer(db.Model, Crud):
             "id_number": self.id_number,
             "first_name": self.first_name,
             "last_name": self.last_name,
+            "cellphone_number" : self.cellphone_number,
             "address": self.address
         }
 
@@ -123,8 +117,6 @@ class Seller(db.Model, Crud):
     identification_number = db.Column(db.String(250), nullable=False, unique=True)
     cellphone_number = db.Column(db.String(250), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete="CASCADE"), nullable=True)
-
-
 
     def save(self):
         """ Save and commit a new Seller """
@@ -154,7 +146,7 @@ class Category(db.Model, Crud):
         db.session.commit()
 
     def __repr__(self):
-        return '<Buyer %r>' % self.name
+        return '<Categroy %r>' % self.name
 
     def serialize(self):
         return {
@@ -193,8 +185,7 @@ class Store(db.Model, Crud):
             "name" : self.name,
             "description" : self.description,
             "seller_id" : self.seller_id,
-            "id_products" : {
-                "products" :  [p.minialize() for p in self.products],
+            "products" : {
                 "quantity": len(self.products),
                 "categories" : [c.category.minialize() for c in self.products],
             }

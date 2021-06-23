@@ -38,6 +38,9 @@ def handle_invalid_usage(error):
 #bpa = Blueprint('auth', __name__, url_prefix='/auth')
 
 # generate sitemap with all your endpoints
+
+#----------------------------SIGNUP BUYER AND SELLER----------------------
+
 @app.route('/signup-buyer',  methods=['POST'])
 def register_buyer():
     """ Recive data to create a Buyer """
@@ -48,27 +51,32 @@ def register_buyer():
         email = request_body["email"],
         password = request_body["password"]
     )
+
+    if not isinstance(new_user, User):
+        return jsonify({
+            "msg": "ocurrió un problea al crear el Usuario"
+        }), 500
     new_user.save()
+
     new_buyer = Buyer.create(
-        id_number = request_body["id_number"],
-        first_name =request_body["first_name"],
+        first_name = request_body["first_name"],
         last_name = request_body["last_name"],
+        id_number = request_body["id_number"],
+        cellphone_number = request_body["cellphone_number"],
         address = request_body["address"],
         user_id = new_user.id
     )
+    if not isinstance(new_buyer, Buyer):
+        return jsonify({
+            "msg": "ocurrió un problea al crear el Usuario"
+        }), 500
+
     new_buyer.save()
-    response_body = jsonify({
-        "user": new_user.serialize(),
-        "buyer": new_buyer.serialize()
-    })
-        #email = request_body["full_name"], 
-    # new_buyer = Buyer.create(
-    #     full_name = request_body["full_name"], 
-    #     email = request_body["email"],
-    #     address = request_body["address"],
-    #     phone = request_body["phone"]
-    # )
-    return response_body, 200
+
+    return jsonify({
+        "msg": "El usuario fue creado satisfactoriamente.",
+        "user": new_user.serialize()
+    }), 201
     #return jsonify(response_body), 200
 
 @app.route('/signup-seller', methods=['POST'])
@@ -129,6 +137,7 @@ def register_seller():
         }
     }), 201
 
+#------------------------------------LOGIN-------------------------------
 
 @app.route('/login', methods=['POST'])
 def log_user_in():
@@ -153,12 +162,6 @@ def log_user_in():
     }), 201
 
 
-
-
-# generate sitemap with all your endpoints
-# @app.route('/')
-# def sitemap():
-#     return generate_sitemap(app)
 
 #----------------------------CATEGORY ENDPOINTS------------------------
 

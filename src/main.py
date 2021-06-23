@@ -149,7 +149,7 @@ def log_user_in():
             "msg" : "El usuario no existe"
         }), 404
     if not user.check_password(data.get('password')):
-        return jsonigy({
+        return jsonify({
             "msg" : "Malas credenciales"
         }), 404
     #Create token

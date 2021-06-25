@@ -175,6 +175,7 @@ class Store(db.Model, Crud):
         db.session.add(self)
         db.session.commit()
 
+
     def __repr__(self):
         """ Return a representancion of the instance """
         return '<Store %r>' % self.name
@@ -209,6 +210,12 @@ class Product(db.Model, Crud):
         """ Get all the poducts in a store """
         return cls.query.filter_by(store_id = store_id)
 
+    @classmethod
+    def get_all_available(cls):
+        """ get all the available products"""
+        return cls.query.filter_by(active = True).all()
+
+    
     def save(self):
         """ Save and commit a new Product """
         db.session.add(self)
@@ -272,6 +279,6 @@ class ProductToBuy(db.Model, Crud):
             "id" : self.id,
             "product_id": self.product_id,
             "buyer_id": self.buyer_id,
-            "quantity": self.quantity
-        }
+            "quantity": self.quantity,
+            "product" : product.serialize()
     

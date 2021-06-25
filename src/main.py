@@ -243,11 +243,20 @@ def get_stores():
 
 #------------------------------PRODUCT ENDPOINTS--------------------
 
+@app.route('/products', methods=['GET'])
+def get_active_products():
+    """ Return all the active products available """
+    active_products = Product.get_all_available()
+    return jsonify({
+        "products": [ product.serialize() for product in active_products ]
+    }), 200
+
 @app.route('/stores/<int:store_id>/products', methods=['GET'])
 def get_all_products(store_id):
     """ Get all the poducts in a specific Store by store_id"""
     products = Product.get_by_store(store_id)
     products_dict = list(map(lambda product: product.serialize(), products))
+    print(products_dict)
     return jsonify(
         {
             "store_id" : store_id, 

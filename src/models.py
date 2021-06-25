@@ -280,5 +280,5 @@ class ProductToBuy(db.Model, Crud):
             "product_id": self.product_id,
             "buyer_id": self.buyer_id,
             "quantity": self.quantity,
-            "product" : product.serialize()
-    
+            "product" : self.product.serialize()
+        }
